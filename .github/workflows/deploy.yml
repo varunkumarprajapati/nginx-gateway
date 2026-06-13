@@ -22,7 +22,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          source: "nginx.conf"
+          source: "nginx/nginx.conf"
           target: "/tmp" # Safely lands in staging first
 
       # 3. Handle validation and reload via modern SSH Action

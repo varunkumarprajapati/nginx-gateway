@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-
+      
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,22 +16,22 @@ jobs:
 
       # 2. Securely stream files via modern SCP Action
       - name: Copy NGINX Config via Secure SCP
-        uses: appleboy/scp-action@v1.0.3 # Matching your working major versioning tier
+        uses: appleboy/scp-action@v1.0.0 # Latest valid major tag for SCP
         with:
-          host: ${{ secrets.SSH_HOST }} # Fixed: Changed from SERVER_HOST to match your secrets
-          username: ${{ secrets.SSH_USER }} # Fixed: Changed from SERVER_USER to match your secrets
-          key: ${{ secrets.SSH_KEY }} # Fixed: Changed from SSH_PRIVATE_KEY to match your secrets
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           port: 22
           source: "nginx.conf"
           target: "/tmp" # Safely lands in staging first
 
       # 3. Handle validation and reload via modern SSH Action
       - name: Verify and Apply Config over SSH
-        uses: appleboy/ssh-action@v1.0.3 # Matching your working major versioning tier
+        uses: appleboy/ssh-action@v1.2.0 # Latest valid release tag for SSH
         with:
-          host: ${{ secrets.SSH_HOST }} # Fixed to match secrets
-          username: ${{ secrets.SSH_USER }} # Fixed to match secrets
-          key: ${{ secrets.SSH_KEY }} # Fixed to match secrets
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
           port: 22
           request_pty: true # Handles sudo loops perfectly
           script: |

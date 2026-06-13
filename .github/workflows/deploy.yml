@@ -1,10 +1,10 @@
-name: Deploy NGINX Config to Production
+name: Deploy NGINX Gateway to Production
 
 on:
   push:
     branches:
       - main
-      
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -14,37 +14,43 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Securely stream files via modern SCP Action
-      - name: Copy NGINX Config via Secure SCP
-        uses: appleboy/scp-action@v1.0.0 # Latest valid major tag for SCP
+      # 2. Copy the entire nginx gateway directory to your Oracle Cloud Instance
+      - name: Copy NGINX Config & Compose Files via Secure SCP
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          source: "nginx/nginx.conf"
-          target: "/tmp" # Safely lands in staging first
+          # Copies both the compose file and the nginx subdirectory containing nginx.conf
+          source: "docker-compose.yml,nginx/nginx.conf"
+          target: "/home/ubuntu/apps/nginx-gateway/"
 
-      # 3. Handle validation and reload via modern SSH Action
-      - name: Verify and Apply Config over SSH
-        uses: appleboy/ssh-action@v1.2.0 # Latest valid release tag for SSH
+      # 3. Reload the configurations inside the running Docker container
+      - name: Verify and Hot-Reload NGINX Container over SSH
+        uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: 22
-          request_pty: true # Handles sudo loops perfectly
+          request_pty: true
           script: |
-            # Move file from staging to active NGINX system path
-            sudo mv /tmp/nginx.conf /etc/nginx/nginx.conf
-            sudo chown root:root /etc/nginx/nginx.conf
+            # Navigate to your organized gateway folder on the server
+            cd /home/ubuntu/apps/nginx-gateway
 
-            # Run strict syntax checks 
-            echo "Verifying NGINX config syntax..."
-            if sudo nginx -t; then
-              echo "Syntax check passed! Performing graceful reload..."
-              sudo systemctl reload nginx
+            # 1. Spin up the containers if they aren't already running
+            echo "Ensuring NGINX container services are up..."
+            docker compose up -d
+
+            # 2. Extract service name dynamically or run syntax check inside the running container
+            # This assumes your service in docker-compose.yml is named 'nginx' or 'gateway'
+            # Adjust the service identifier if your compose uses a different name
+            echo "Verifying NGINX configuration syntax inside Docker container..."
+            if docker compose exec -T nginx nginx -t; then
+              echo "Syntax check passed! Performing zero-downtime hot reload..."
+              docker compose exec -T nginx nginx -s reload
             else
-              echo "Critical syntax error found in config. Aborting deployment!"
+              echo "Critical syntax error found in config! Deployment aborted."
               exit 1
             fi

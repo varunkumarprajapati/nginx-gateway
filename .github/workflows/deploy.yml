@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "nginx.conf" # Triggers only when your NGINX file changes
 
 jobs:
   deploy:
